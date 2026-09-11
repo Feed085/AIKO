@@ -222,6 +222,15 @@ input[type="text"]:focus {
     background: var(--accent-hover);
 }
 
+.icon-btn.danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.icon-btn.danger:hover {
+    background: #c0392b;
+}
+
 .icon-btn.recording {
     background: var(--mic-active);
     animation: pulse-red 1s infinite;

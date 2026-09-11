@@ -2,6 +2,7 @@ const chatArea = document.getElementById('chat-area');
 const textInput = document.getElementById('text-input');
 const sendBtn = document.getElementById('send-btn');
 const micBtn = document.getElementById('mic-btn');
+const stopBtn = document.getElementById('stop-btn');
 const statusText = document.getElementById('status-text');
 const pulseRing = document.querySelector('.pulse-ring');
 
@@ -68,18 +69,25 @@ function connectWebSocket() {
         if (data.type === 'answer') {
             removeLoadingIndicator();
             statusText.innerText = "Bağlı";
+            setInputState(false);
             appendMessage(data.text, 'ai');
             // speakText(data.text); // Kullanıcı isteği üzerine sesli okuma kapatıldı
         } else if (data.type === 'error') {
             removeLoadingIndicator();
             statusText.innerText = "Bağlı";
+            setInputState(false);
             appendMessage("Hata: " + data.message, 'system');
         } else if (data.type === 'question') {
             removeLoadingIndicator();
             statusText.innerText = "Bağlı";
+            setInputState(false);
             appendQuestionForm(data.question, data.options);
         } else if (data.type === 'status') {
             statusText.innerText = data.text;
+            if (data.text === 'İşlem durduruldu.') {
+                removeLoadingIndicator();
+                setInputState(false);
+            }
         }
     };
 
@@ -241,6 +249,7 @@ function sendPrompt(text = null) {
     textInput.value = '';
     
     showLoadingIndicator();
+    setInputState(true);
     
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
@@ -249,11 +258,37 @@ function sendPrompt(text = null) {
         }));
     } else {
         removeLoadingIndicator();
+        setInputState(false);
         appendMessage("Sunucuya bağlı değilsiniz.", 'system');
     }
 }
 
+function setInputState(isProcessing) {
+    if (isProcessing) {
+        sendBtn.style.display = 'none';
+        micBtn.style.display = 'none';
+        stopBtn.style.display = 'flex';
+        stopBtn.innerHTML = '<span class="material-icons-round">stop</span>';
+        stopBtn.disabled = false;
+        textInput.disabled = true;
+    } else {
+        sendBtn.style.display = 'flex';
+        micBtn.style.display = 'flex';
+        stopBtn.style.display = 'none';
+        textInput.disabled = false;
+        textInput.focus();
+    }
+}
+
 // Event Listeners
+stopBtn.addEventListener('click', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'stop' }));
+        stopBtn.innerHTML = '<span class="material-icons-round">hourglass_empty</span>';
+        stopBtn.disabled = true;
+        statusText.innerText = "Durduruluyor...";
+    }
+});
 sendBtn.addEventListener('click', () => sendPrompt());
 
 textInput.addEventListener('keypress', (e) => {

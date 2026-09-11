@@ -33,15 +33,22 @@ const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || "";
 
 wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket.');
+    ws.isStopped = false;
 
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
             
+            if (data.type === 'stop') {
+                ws.isStopped = true;
+                return;
+            }
+            
             let imgWidth = 1920;
             let imgHeight = 1080;
             
             if (data.type === 'ask_question') {
+                ws.isStopped = false;
                 const userPrompt = data.prompt;
                 console.log('Received prompt:', userPrompt);
 
@@ -106,6 +113,10 @@ wss.on('connection', (ws) => {
                 const delay = ms => new Promise(res => setTimeout(res, ms));
 
                 async function processAgentLoop(currentMessages, ws, takeScreenshotFirst = false) {
+                    if (ws.isStopped) {
+                        ws.send(JSON.stringify({ type: 'status', text: 'İşlem durduruldu.' }));
+                        return;
+                    }
                     let loopImgWidth = 1920;
                     let loopImgHeight = 1080;
 
@@ -147,6 +158,11 @@ wss.on('connection', (ws) => {
                             ]
                         }
                     });
+
+                    if (ws.isStopped) {
+                        ws.send(JSON.stringify({ type: 'status', text: 'İşlem durduruldu.' }));
+                        return;
+                    }
 
                     let aiResponseText = response.choices[0].message.content || "";
                     const toolCalls = response.choices[0].message.tool_calls;
@@ -466,6 +482,10 @@ wss.on('connection', (ws) => {
                     }));
 
                     if (hasNextStep) {
+                        if (ws.isStopped) {
+                            ws.send(JSON.stringify({ type: 'status', text: 'İşlem durduruldu.' }));
+                            return;
+                        }
                         ws.send(JSON.stringify({ type: 'status', text: 'İşlem devam ediyor (bekleniyor)...' }));
                         await delay(3500); // Wait 3.5 seconds for UI to settle
                         await processAgentLoop(currentMessages, ws, true);
