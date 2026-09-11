@@ -24,6 +24,7 @@ namespace MouseClicker
 
         private const int MOUSEEVENTF_LEFTDOWN = 0x02;
         private const int MOUSEEVENTF_LEFTUP = 0x04;
+        private const int MOUSEEVENTF_WHEEL = 0x0800;
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
@@ -103,6 +104,20 @@ namespace MouseClicker
                         mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
                         Thread.Sleep(10);
                         mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    }
+                    else if (action == "scrollup")
+                    {
+                        int amount = 120; // 1 notch
+                        int parsedAmount;
+                        if (args.Length > 3 && int.TryParse(args[3], out parsedAmount)) amount = parsedAmount * 120;
+                        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)amount, 0);
+                    }
+                    else if (action == "scrolldown")
+                    {
+                        int amount = -120; // -1 notch
+                        int parsedAmount;
+                        if (args.Length > 3 && int.TryParse(args[3], out parsedAmount)) amount = -parsedAmount * 120;
+                        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)amount, 0);
                     }
                 }
             }
