@@ -365,29 +365,29 @@ wss.on('connection', (ws) => {
                     }
 
                     // Parse and execute normalized Scroll Up requests [SCROLL_UP:x,y,amount]
-                    const scrollUpMatch = aiResponseText.match(/\[SCROLL_UP:(\d+),(\d+),(\d+)\]/);
+                    const scrollUpMatch = aiResponseText.match(/\[SCROLL_UP:(\d+),(\d+),([\d\.]+)\]/);
                     if (scrollUpMatch) {
                         const normX = parseInt(scrollUpMatch[1], 10);
                         const normY = parseInt(scrollUpMatch[2], 10);
-                        const amount = parseInt(scrollUpMatch[3], 10);
+                        const amount = parseFloat(scrollUpMatch[3]);
                         const pixelX = Math.round((normX / 1000) * loopImgWidth);
                         const pixelY = Math.round((normY / 1000) * loopImgHeight);
                         console.log(`AI requested to scroll up at normalized ${normX}, ${normY} with amount ${amount}`);
                         exec(`MouseClicker.exe scrollup ${pixelX} ${pixelY} ${amount}`, (error) => { if (error) console.error("Error scrolling up:", error); });
-                        aiResponseText = aiResponseText.replace(/\[SCROLL_UP:\d+,\d+,\d+\]/g, '').trim();
+                        aiResponseText = aiResponseText.replace(/\[SCROLL_UP:\d+,\d+,[\d\.]+\]/g, '').trim();
                     }
 
                     // Parse and execute normalized Scroll Down requests [SCROLL_DOWN:x,y,amount]
-                    const scrollDownMatch = aiResponseText.match(/\[SCROLL_DOWN:(\d+),(\d+),(\d+)\]/);
+                    const scrollDownMatch = aiResponseText.match(/\[SCROLL_DOWN:(\d+),(\d+),([\d\.]+)\]/);
                     if (scrollDownMatch) {
                         const normX = parseInt(scrollDownMatch[1], 10);
                         const normY = parseInt(scrollDownMatch[2], 10);
-                        const amount = parseInt(scrollDownMatch[3], 10);
+                        const amount = parseFloat(scrollDownMatch[3]);
                         const pixelX = Math.round((normX / 1000) * loopImgWidth);
                         const pixelY = Math.round((normY / 1000) * loopImgHeight);
                         console.log(`AI requested to scroll down at normalized ${normX}, ${normY} with amount ${amount}`);
                         exec(`MouseClicker.exe scrolldown ${pixelX} ${pixelY} ${amount}`, (error) => { if (error) console.error("Error scrolling down:", error); });
-                        aiResponseText = aiResponseText.replace(/\[SCROLL_DOWN:\d+,\d+,\d+\]/g, '').trim();
+                        aiResponseText = aiResponseText.replace(/\[SCROLL_DOWN:\d+,\d+,[\d\.]+\]/g, '').trim();
                     }
 
                     // Parse and execute normalized Type requests [TYPE:x,y:text]

@@ -115,17 +115,37 @@ namespace MouseClicker
                     }
                     else if (action == "scrollup")
                     {
-                        int amount = 120; // 1 notch
-                        int parsedAmount;
-                        if (args.Length > 3 && int.TryParse(args[3], out parsedAmount)) amount = parsedAmount * 120;
-                        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)amount, 0);
+                        float amount = 120f; // 1 notch default
+                        float parsedAmount;
+                        if (args.Length > 3 && float.TryParse(args[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out parsedAmount)) 
+                        {
+                            amount = parsedAmount * 120f;
+                        }
+                        
+                        // Smoothly scroll
+                        int totalAmount = (int)amount;
+                        int step = 15; // smaller steps for smoothness
+                        for(int i = 0; i < totalAmount; i += step) {
+                            mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)Math.Min(step, totalAmount - i), 0);
+                            Thread.Sleep(10);
+                        }
                     }
                     else if (action == "scrolldown")
                     {
-                        int amount = -120; // -1 notch
-                        int parsedAmount;
-                        if (args.Length > 3 && int.TryParse(args[3], out parsedAmount)) amount = -parsedAmount * 120;
-                        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)amount, 0);
+                        float amount = 120f; 
+                        float parsedAmount;
+                        if (args.Length > 3 && float.TryParse(args[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out parsedAmount)) 
+                        {
+                            amount = parsedAmount * 120f;
+                        }
+                        
+                        // Smoothly scroll down
+                        int totalAmount = (int)amount;
+                        int step = 15;
+                        for(int i = 0; i < totalAmount; i += step) {
+                            mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)-Math.Min(step, totalAmount - i), 0);
+                            Thread.Sleep(10);
+                        }
                     }
                 }
             }
