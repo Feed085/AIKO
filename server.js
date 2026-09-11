@@ -85,6 +85,21 @@ wss.on('connection', (ws) => {
                                 required: ["prompt"]
                             }
                         }
+                    },
+                    {
+                        type: "function",
+                        function: {
+                            name: "ask_user_choice",
+                            description: "Eğer yapacağın işte birden fazla seçenek arasında kararsız kalırsan veya kullanıcıya sorman gereken bir tercih durumu oluşursa bu fonksiyonu çağır. Kullanıcıya bir soru ve seçenekler sunar.",
+                            parameters: {
+                                type: "object",
+                                properties: {
+                                    question: { type: "string", description: "Kullanıcıya sorulacak soru" },
+                                    options: { type: "array", items: { type: "string" }, description: "Seçeneklerin listesi (örn: ['Chrome', 'Edge'])" }
+                                },
+                                required: ["question", "options"]
+                            }
+                        }
                     }
                 ];
 
@@ -175,6 +190,21 @@ wss.on('connection', (ws) => {
                                 } catch (e) {
                                     console.error('Failed to parse generate_image arguments:', e);
                                 }
+                            } else if (toolCall.function.name === 'ask_user_choice') {
+                                try {
+                                    const choiceData = JSON.parse(toolCall.function.arguments);
+                                    console.log('AI autonomously decided to ask user a choice:', choiceData);
+                                    
+                                    ws.send(JSON.stringify({
+                                        type: 'question',
+                                        question: choiceData.question,
+                                        options: choiceData.options
+                                    }));
+                                    
+                                    aiResponseText = aiResponseText.replace(/\[NEXT_STEP\]/g, '').trim();
+                                } catch (e) {
+                                    console.error('Failed to parse ask_user_choice arguments:', e);
+                                }
                             }
                         }
                     }
@@ -241,6 +271,16 @@ wss.on('connection', (ws) => {
                                         const imgUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&width=1024&height=1024`;
                                         if (aiResponseText) aiResponseText += `\n\n![Oluşturulan Görsel](${imgUrl}) [NEXT_STEP]`;
                                         else aiResponseText = `İşte istediğin görsel:\n\n![Oluşturulan Görsel](${imgUrl}) [NEXT_STEP]`;
+                                    } catch (e) {}
+                                } else if (toolCall.function.name === 'ask_user_choice') {
+                                    try {
+                                        const choiceData = JSON.parse(toolCall.function.arguments);
+                                        ws.send(JSON.stringify({
+                                            type: 'question',
+                                            question: choiceData.question,
+                                            options: choiceData.options
+                                        }));
+                                        aiResponseText = aiResponseText.replace(/\[NEXT_STEP\]/g, '').trim();
                                     } catch (e) {}
                                 }
                             }

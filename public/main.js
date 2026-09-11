@@ -74,6 +74,10 @@ function connectWebSocket() {
             removeLoadingIndicator();
             statusText.innerText = "Bağlı";
             appendMessage("Hata: " + data.message, 'system');
+        } else if (data.type === 'question') {
+            removeLoadingIndicator();
+            statusText.innerText = "Bağlı";
+            appendQuestionForm(data.question, data.options);
         } else if (data.type === 'status') {
             statusText.innerText = data.text;
         }
@@ -147,6 +151,86 @@ function removeLoadingIndicator() {
     if (indicator) {
         indicator.remove();
     }
+}
+
+function appendQuestionForm(questionText, options) {
+    const formDiv = document.createElement('div');
+    formDiv.className = 'message ai question-form';
+    
+    // Create random ID prefix for radio buttons
+    const prefix = 'q_' + Math.random().toString(36).substr(2, 9);
+    
+    let html = `<div class="question-text">${questionText}</div>`;
+    html += `<div class="radio-group">`;
+    
+    options.forEach((opt, index) => {
+        const id = `${prefix}_${index}`;
+        html += `
+            <label class="radio-option" for="${id}">
+                <input type="radio" name="${prefix}" id="${id}" value="${opt}">
+                ${opt}
+            </label>
+        `;
+    });
+    
+    // Add "Diğer" (Other) option
+    const otherId = `${prefix}_other`;
+    html += `
+            <label class="radio-option" for="${otherId}">
+                <input type="radio" name="${prefix}" id="${otherId}" value="other">
+                Diğer (Belirtin)
+            </label>
+            <input type="text" class="custom-input" id="${prefix}_custom" placeholder="Kendi tercihinizi yazın..." disabled autocomplete="off">
+    `;
+    
+    html += `</div>`;
+    html += `<button class="submit-choice-btn" id="${prefix}_submit">Gönder</button>`;
+    
+    formDiv.innerHTML = html;
+    chatArea.appendChild(formDiv);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    
+    // Add event listeners
+    const customInput = formDiv.querySelector(`#${prefix}_custom`);
+    const radios = formDiv.querySelectorAll(`input[name="${prefix}"]`);
+    const submitBtn = formDiv.querySelector(`#${prefix}_submit`);
+    
+    radios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'other') {
+                customInput.disabled = false;
+                customInput.focus();
+            } else {
+                customInput.disabled = true;
+            }
+        });
+    });
+    
+    submitBtn.addEventListener('click', () => {
+        let selectedValue = null;
+        radios.forEach(r => { if (r.checked) selectedValue = r.value; });
+        
+        if (!selectedValue) {
+            alert("Lütfen bir seçenek işaretleyin.");
+            return;
+        }
+        
+        if (selectedValue === 'other') {
+            selectedValue = customInput.value.trim();
+            if (!selectedValue) {
+                alert("Lütfen diğer alanını doldurun.");
+                return;
+            }
+        }
+        
+        // Disable form to prevent resubmit
+        radios.forEach(r => r.disabled = true);
+        customInput.disabled = true;
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Gönderildi";
+        
+        sendPrompt("Seçimim: " + selectedValue);
+    });
 }
 
 function sendPrompt(text = null) {
