@@ -24,6 +24,8 @@ namespace MouseClicker
 
         private const int MOUSEEVENTF_LEFTDOWN = 0x02;
         private const int MOUSEEVENTF_LEFTUP = 0x04;
+        private const int MOUSEEVENTF_RIGHTDOWN = 0x08;
+        private const int MOUSEEVENTF_RIGHTUP = 0x10;
         private const int MOUSEEVENTF_WHEEL = 0x0800;
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -104,6 +106,12 @@ namespace MouseClicker
                         mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
                         Thread.Sleep(10);
                         mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    }
+                    else if (action == "rightclick")
+                    {
+                        mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+                        Thread.Sleep(10);
+                        mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
                     }
                     else if (action == "scrollup")
                     {

@@ -294,6 +294,19 @@ wss.on('connection', (ws) => {
                         aiResponseText = aiResponseText.replace(/\[DOUBLE_CLICK:\d+,\d+\]/g, '').trim();
                     }
 
+                    // Parse and execute normalized Right Click requests [RIGHT_CLICK:x,y]
+                    const rightClickMatch = aiResponseText.match(/\[RIGHT_CLICK:(\d+),(\d+)\]/);
+                    if (rightClickMatch) {
+                        const normX = parseInt(rightClickMatch[1], 10);
+                        const normY = parseInt(rightClickMatch[2], 10);
+                        const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                        const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                        console.log(`AI requested to right click at normalized ${normX}, ${normY} -> Right clicking at pixels ${pixelX}, ${pixelY}`);
+                        exec(`DrawClick.exe ${pixelX} ${pixelY}`, (err) => { if (err) console.error("Error drawing click:", err); });
+                        exec(`MouseClicker.exe rightclick ${pixelX} ${pixelY}`, (error) => { if (error) console.error("Error right clicking:", error); });
+                        aiResponseText = aiResponseText.replace(/\[RIGHT_CLICK:\d+,\d+\]/g, '').trim();
+                    }
+
                     // Parse and execute normalized Drag requests [DRAG:x1,y1,x2,y2]
                     const dragMatch = aiResponseText.match(/\[DRAG:(\d+),(\d+),(\d+),(\d+)\]/);
                     if (dragMatch) {
