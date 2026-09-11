@@ -294,6 +294,23 @@ wss.on('connection', (ws) => {
                         aiResponseText = aiResponseText.replace(/\[DOUBLE_CLICK:\d+,\d+\]/g, '').trim();
                     }
 
+                    // Parse and execute normalized Drag requests [DRAG:x1,y1,x2,y2]
+                    const dragMatch = aiResponseText.match(/\[DRAG:(\d+),(\d+),(\d+),(\d+)\]/);
+                    if (dragMatch) {
+                        const normX1 = parseInt(dragMatch[1], 10);
+                        const normY1 = parseInt(dragMatch[2], 10);
+                        const normX2 = parseInt(dragMatch[3], 10);
+                        const normY2 = parseInt(dragMatch[4], 10);
+                        const pixelX1 = Math.round((normX1 / 1000) * loopImgWidth);
+                        const pixelY1 = Math.round((normY1 / 1000) * loopImgHeight);
+                        const pixelX2 = Math.round((normX2 / 1000) * loopImgWidth);
+                        const pixelY2 = Math.round((normY2 / 1000) * loopImgHeight);
+                        console.log(`AI requested to drag from normalized ${normX1}, ${normY1} to ${normX2}, ${normY2}`);
+                        exec(`DrawClick.exe ${pixelX1} ${pixelY1}`, (err) => { if (err) console.error("Error drawing click:", err); });
+                        exec(`MouseClicker.exe drag ${pixelX1} ${pixelY1} ${pixelX2} ${pixelY2}`, (error) => { if (error) console.error("Error dragging:", error); });
+                        aiResponseText = aiResponseText.replace(/\[DRAG:\d+,\d+,\d+,\d+\]/g, '').trim();
+                    }
+
                     // Parse and execute normalized Type requests [TYPE:x,y:text]
                     const typeMatch = aiResponseText.match(/\[TYPE:(\d+),(\d+):(.*?)\]/);
                     if (typeMatch) {

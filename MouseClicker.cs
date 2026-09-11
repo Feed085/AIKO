@@ -64,28 +64,46 @@ namespace MouseClicker
             if (args.Length < 3) return;
             
             string action = args[0].ToLower();
-            int x;
-            int y;
-            if (int.TryParse(args[1], out x) && int.TryParse(args[2], out y))
-            {
-                MoveSmoothly(x, y);
-                Thread.Sleep(50); // Give it a slight moment to settle
 
-                if (action == "click")
+            if (action == "drag")
+            {
+                if (args.Length < 5) return;
+                int x1, y1, x2, y2;
+                if (int.TryParse(args[1], out x1) && int.TryParse(args[2], out y1) && int.TryParse(args[3], out x2) && int.TryParse(args[4], out y2))
                 {
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    Thread.Sleep(10);
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-                }
-                else if (action == "doubleclick")
-                {
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    Thread.Sleep(10);
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    MoveSmoothly(x1, y1);
                     Thread.Sleep(50);
                     mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    Thread.Sleep(10);
+                    Thread.Sleep(50);
+                    MoveSmoothly(x2, y2);
+                    Thread.Sleep(50);
                     mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                }
+            }
+            else
+            {
+                int x, y;
+                if (int.TryParse(args[1], out x) && int.TryParse(args[2], out y))
+                {
+                    MoveSmoothly(x, y);
+                    Thread.Sleep(50); // Give it a slight moment to settle
+
+                    if (action == "click")
+                    {
+                        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                        Thread.Sleep(10);
+                        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    }
+                    else if (action == "doubleclick")
+                    {
+                        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                        Thread.Sleep(10);
+                        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                        Thread.Sleep(50);
+                        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                        Thread.Sleep(10);
+                        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    }
                 }
             }
         }
