@@ -1,9 +1,9 @@
 :root {
-    --bg-color: #121212;
-    --surface-color: rgba(30, 30, 30, 0.7);
-    --border-color: rgba(255, 255, 255, 0.1);
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0a0;
+    --bg-color: #0f111a;
+    --surface-color: rgba(25, 27, 38, 0.75);
+    --border-color: rgba(255, 255, 255, 0.15);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
     --accent-color: #6366f1;
     --accent-hover: #4f46e5;
     --mic-active: #ef4444;
@@ -13,17 +13,22 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
 }
 
 body {
-    background-color: var(--bg-color);
+    background: linear-gradient(135deg, #0f111a 0%, #1e1b4b 100%);
     color: var(--text-primary);
-    overflow: hidden; /* No scrollbars on desktop app */
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+}
+
+#root {
+    width: 100%;
+    height: 100%;
 }
 
 .container {
@@ -32,36 +37,40 @@ body {
     display: flex;
     flex-direction: column;
     background: var(--surface-color);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-color);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border-color);
-    background: rgba(0, 0, 0, 0.2);
-    -webkit-app-region: drag; /* Allows dragging the window if supported */
+    background: rgba(0, 0, 0, 0.25);
+    -webkit-app-region: drag;
 }
 
 .logo-area {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .logo {
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     letter-spacing: 1px;
+    background: -webkit-linear-gradient(#fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .pulse-ring {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background-color: #10b981;
     border-radius: 50%;
     box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
@@ -90,73 +99,85 @@ body {
 }
 
 .status {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .chat-area {
     flex: 1;
-    padding: 16px;
+    padding: 20px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
 .chat-area::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
 }
 
 .chat-area::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
 }
 
 .message {
     max-width: 85%;
-    padding: 10px 14px;
-    border-radius: 12px;
+    padding: 12px 16px;
+    border-radius: 16px;
     font-size: 0.95rem;
-    line-height: 1.4;
-    animation: fadeIn 0.3s ease;
+    line-height: 1.5;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     word-wrap: break-word;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.message img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 .message.system {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     align-self: center;
     font-size: 0.85rem;
     color: var(--text-secondary);
+    border-radius: 20px;
 }
 
 .message.user {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     align-self: flex-end;
-    border-bottom-right-radius: 2px;
+    border-bottom-right-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .message.ai {
-    background: var(--accent-color);
+    background: linear-gradient(135deg, var(--accent-color), #818cf8);
     align-self: flex-start;
-    border-bottom-left-radius: 2px;
+    border-bottom-left-radius: 4px;
+    color: white;
 }
 
 .message.loading {
     background: transparent;
     align-self: flex-start;
     display: flex;
-    gap: 4px;
+    gap: 6px;
     padding: 10px 0;
+    box-shadow: none;
 }
 
 .dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     background: var(--text-secondary);
     border-radius: 50%;
     animation: bounce 1.4s infinite ease-in-out both;
@@ -166,56 +187,59 @@ body {
 .dot:nth-child(2) { animation-delay: -0.16s; }
 
 @keyframes bounce {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
+    0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
 }
 
 .input-area {
     display: flex;
     align-items: center;
-    padding: 12px;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.3);
+    padding: 16px;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.4);
     border-top: 1px solid var(--border-color);
 }
 
 input[type="text"] {
     flex: 1;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-color);
-    padding: 10px 14px;
-    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 12px 16px;
+    border-radius: 24px;
     color: white;
     outline: none;
-    font-size: 0.95rem;
-    transition: all 0.2s;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
 input[type="text"]:focus {
     border-color: var(--accent-color);
     background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
 
 .icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: none;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
 }
 
 .icon-btn.primary {
     background: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .icon-btn.primary:hover {
@@ -224,7 +248,7 @@ input[type="text"]:focus {
 
 .icon-btn.danger {
     background: #e74c3c;
-    color: white;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
 }
 
 .icon-btn.danger:hover {
@@ -238,44 +262,51 @@ input[type="text"]:focus {
 
 /* Question Form Styles */
 .question-form {
-    background: var(--accent-color);
-    padding: 14px;
-    border-radius: 12px;
-    border-bottom-left-radius: 2px;
+    background: linear-gradient(135deg, var(--accent-color), #818cf8);
+    padding: 16px;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
     align-self: flex-start;
     max-width: 85%;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    animation: fadeIn 0.3s ease;
+    gap: 12px;
 }
 
 .question-text {
     font-weight: 600;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     line-height: 1.4;
 }
 
 .radio-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .radio-option {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
     font-size: 0.95rem;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.radio-option:hover {
+    background: rgba(255,255,255,0.2);
 }
 
 .custom-input {
-    margin-top: 5px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(0, 0, 0, 0.2);
+    margin-top: 4px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.25);
     color: white;
     outline: none;
     width: 100%;
@@ -288,18 +319,19 @@ input[type="text"]:focus {
 }
 
 .submit-choice-btn {
-    margin-top: 8px;
-    padding: 8px 16px;
-    border-radius: 6px;
+    margin-top: 10px;
+    padding: 10px 20px;
+    border-radius: 8px;
     border: none;
     background: white;
     color: var(--accent-color);
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
     align-self: flex-start;
 }
 
 .submit-choice-btn:hover {
-    background: #f0f0f0;
+    background: #f8fafc;
+    transform: translateY(-1px);
 }
