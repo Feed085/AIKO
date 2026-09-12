@@ -11,6 +11,7 @@ AIKO is an advanced autonomous AI assistant capable of interacting directly with
 - **Image Generation & Auto-Paste**: AIKO can generate images from prompts (via Pollinations.ai) and automatically paste them (Ctrl+V) directly into the chat or input field you specify on your screen.
 - **Email Automation**: Built-in support for sending emails autonomously via n8n webhooks.
 - **Multi-step Autonomous Execution**: Capable of executing complex, multi-layered tasks. After every click or action, AIKO can request a new screenshot to analyze the updated screen and continue the task until completion.
+- **Step-by-Step Guide Mode**: A dedicated mode where AIKO doesn't take control of your mouse/keyboard. Instead, it guides you step-by-step through complex tasks (like software tutorials) by pointing out where to click and what to do, waiting for you to complete each step before moving on.
 - **Safety Filter Override**: Configured to bypass restrictive safety filters for complete creative freedom in roleplay and tasks.
 
 ## 🚀 Setup & Installation
@@ -56,6 +57,7 @@ AIKO, bilgisayarınızla doğrudan etkileşime girebilen, ekran görüntüleri a
 - **Görsel Üretimi ve Otomatik Yapıştırma**: Yapay zeka sizin için (Pollinations.ai aracılığıyla) görseller oluşturabilir ve bu görselleri ekrandaki hedef uygulamaya (Ctrl+V) otomatik olarak yapıştırıp gönderebilir.
 - **E-Posta Otomasyonu**: n8n webhook'ları üzerinden otonom olarak e-posta gönderme yeteneğine sahiptir.
 - **Çok Adımlı Görevler (Multi-step)**: Katmanlı ve uzun süreli görevleri kendi başına yapabilir. Her tıklamadan veya yazı yazdıktan sonra ekranın yeni halini analiz edip görevi bitirene kadar arka arkaya aksiyonlar almaya devam eder.
+- **Adımlı Rehber Modu (Guide Mode)**: Bu mod açıldığında AIKO farenizi veya klavyenizi kontrol etmez. Bunun yerine, karmaşık programlarda (örn: Unreal Engine) size adım adım ne yapmanız gerektiğini söyler, ekranda tıklamanız gereken yerleri işaretler ve siz bir adımı bitirmeden diğerine geçmez.
 - **Özgür Roleplay (Filtresiz)**: Güvenlik sınırlarına takılmadan tamamen özgür ve kısıtlamasız bir şekilde çalışacak şekilde yapılandırılmıştır.
 
 ## 🚀 Kurulum

@@ -57,18 +57,29 @@ const ai = new OpenAI({
     baseURL: process.env.API_BASE_URL + "/v1" 
 });
 const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || "";
+const GUIDE_MODE_PROMPT = process.env.GUIDE_MODE_PROMPT || `Sen kullanıcının kişisel asistanı AIKO'sun. Şu anda 'Adımlı Rehber' modundasın. 
+Kullanıcıya her şeyi tek seferde değil, SADECE bir sonraki (tek) adımı söyle. Asla ikinci veya üçüncü adımı aynı mesajda yazma.
+Kullanıcının ilk adımı tamamladığını teyit etmesini bekle.
+Talimatların çok basit olmasın, detayı açıkla (Örn: Sadece 'Şuraya sağ tıkla' demek yerine 'Şuraya sağ tıkla ve açılan menüden arama çubuğunu bul. Oraya şunu yaz ve entera bas. Bulamazsan bana bildir.' gibi).
+Fare ve klavye tıklama araçlarını kullanman **KESİNLİKLE YASAKTIR** ([CLICK], [TYPE], [DRAG] vs. kullanma). 
+Sadece ekranda yer işaretlemesi yapabilirsin. İşaretleme için '[POINT:x,y:Metin]' formatını kullan.`;
 let isStopped = false;
 
 ipcMain.on('stop-action', () => {
     isStopped = true;
 });
 
-ipcMain.on('ask-question', async (event, userPrompt) => {
+ipcMain.on('ask-question', async (event, userPrompt, isGuideMode) => {
     isStopped = false;
-    console.log('Received prompt:', userPrompt);
+    console.log('Received prompt:', userPrompt, 'isGuideMode:', isGuideMode);
+
+    let currentSystemPrompt = SYSTEM_PROMPT;
+    if (isGuideMode) {
+        currentSystemPrompt = SYSTEM_PROMPT + "\n\n" + GUIDE_MODE_PROMPT;
+    }
 
     const messages = [
-        ...(SYSTEM_PROMPT ? [{ role: 'system', content: SYSTEM_PROMPT }] : []),
+        ...(currentSystemPrompt ? [{ role: 'system', content: currentSystemPrompt }] : []),
         { role: 'user', content: userPrompt }
     ];
 
@@ -271,129 +282,146 @@ ipcMain.on('ask-question', async (event, userPrompt) => {
 
         const clickMatch = aiResponseText.match(/\[CLICK:(\d+),(\d+)\]/);
         if (clickMatch) {
-            const normX = parseInt(clickMatch[1], 10);
-            const normY = parseInt(clickMatch[2], 10);
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            exec(`DrawClick.exe ${pixelX} ${pixelY}`, (err) => { if (err) console.error("Error drawing click:", err); });
-            exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => { if (error) console.error("Error clicking:", error); });
+            if (!isGuideMode) {
+                const normX = parseInt(clickMatch[1], 10);
+                const normY = parseInt(clickMatch[2], 10);
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                exec(`DrawClick.exe ${pixelX} ${pixelY}`, (err) => { if (err) console.error("Error drawing click:", err); });
+                exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => { if (error) console.error("Error clicking:", error); });
+            }
             aiResponseText = aiResponseText.replace(/\[CLICK:\d+,\d+\]/g, '').trim();
         }
 
         const dblClickMatch = aiResponseText.match(/\[DOUBLE_CLICK:(\d+),(\d+)\]/);
         if (dblClickMatch) {
-            const normX = parseInt(dblClickMatch[1], 10);
-            const normY = parseInt(dblClickMatch[2], 10);
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            exec(`DrawClick.exe ${pixelX} ${pixelY} double`);
-            exec(`MouseClicker.exe doubleclick ${pixelX} ${pixelY}`);
+            if (!isGuideMode) {
+                const normX = parseInt(dblClickMatch[1], 10);
+                const normY = parseInt(dblClickMatch[2], 10);
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                exec(`DrawClick.exe ${pixelX} ${pixelY} double`);
+                exec(`MouseClicker.exe doubleclick ${pixelX} ${pixelY}`);
+            }
             aiResponseText = aiResponseText.replace(/\[DOUBLE_CLICK:\d+,\d+\]/g, '').trim();
         }
 
         const rightClickMatch = aiResponseText.match(/\[RIGHT_CLICK:(\d+),(\d+)\]/);
         if (rightClickMatch) {
-            const normX = parseInt(rightClickMatch[1], 10);
-            const normY = parseInt(rightClickMatch[2], 10);
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            exec(`DrawClick.exe ${pixelX} ${pixelY}`);
-            exec(`MouseClicker.exe rightclick ${pixelX} ${pixelY}`);
+            if (!isGuideMode) {
+                const normX = parseInt(rightClickMatch[1], 10);
+                const normY = parseInt(rightClickMatch[2], 10);
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                exec(`DrawClick.exe ${pixelX} ${pixelY}`);
+                exec(`MouseClicker.exe rightclick ${pixelX} ${pixelY}`);
+            }
             aiResponseText = aiResponseText.replace(/\[RIGHT_CLICK:\d+,\d+\]/g, '').trim();
         }
 
         const dragMatch = aiResponseText.match(/\[DRAG:(\d+),(\d+),(\d+),(\d+)\]/);
         if (dragMatch) {
-            const normX1 = parseInt(dragMatch[1], 10);
-            const normY1 = parseInt(dragMatch[2], 10);
-            const normX2 = parseInt(dragMatch[3], 10);
-            const normY2 = parseInt(dragMatch[4], 10);
-            const pixelX1 = Math.round((normX1 / 1000) * loopImgWidth);
-            const pixelY1 = Math.round((normY1 / 1000) * loopImgHeight);
-            const pixelX2 = Math.round((normX2 / 1000) * loopImgWidth);
-            const pixelY2 = Math.round((normY2 / 1000) * loopImgHeight);
-            exec(`DrawClick.exe ${pixelX1} ${pixelY1}`);
-            exec(`MouseClicker.exe drag ${pixelX1} ${pixelY1} ${pixelX2} ${pixelY2}`);
+            if (!isGuideMode) {
+                const normX1 = parseInt(dragMatch[1], 10);
+                const normY1 = parseInt(dragMatch[2], 10);
+                const normX2 = parseInt(dragMatch[3], 10);
+                const normY2 = parseInt(dragMatch[4], 10);
+                const pixelX1 = Math.round((normX1 / 1000) * loopImgWidth);
+                const pixelY1 = Math.round((normY1 / 1000) * loopImgHeight);
+                const pixelX2 = Math.round((normX2 / 1000) * loopImgWidth);
+                const pixelY2 = Math.round((normY2 / 1000) * loopImgHeight);
+                exec(`DrawClick.exe ${pixelX1} ${pixelY1}`);
+                exec(`MouseClicker.exe drag ${pixelX1} ${pixelY1} ${pixelX2} ${pixelY2}`);
+            }
             aiResponseText = aiResponseText.replace(/\[DRAG:\d+,\d+,\d+,\d+\]/g, '').trim();
         }
 
         const scrollUpMatch = aiResponseText.match(/\[SCROLL_UP:(\d+),(\d+),([\d\.]+)\]/);
         if (scrollUpMatch) {
-            const normX = parseInt(scrollUpMatch[1], 10);
-            const normY = parseInt(scrollUpMatch[2], 10);
-            const amount = parseFloat(scrollUpMatch[3]);
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            exec(`MouseClicker.exe scrollup ${pixelX} ${pixelY} ${amount}`);
+            if (!isGuideMode) {
+                const normX = parseInt(scrollUpMatch[1], 10);
+                const normY = parseInt(scrollUpMatch[2], 10);
+                const amount = parseFloat(scrollUpMatch[3]);
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                exec(`MouseClicker.exe scrollup ${pixelX} ${pixelY} ${amount}`);
+            }
             aiResponseText = aiResponseText.replace(/\[SCROLL_UP:\d+,\d+,[\d\.]+\]/g, '').trim();
         }
 
         const scrollDownMatch = aiResponseText.match(/\[SCROLL_DOWN:(\d+),(\d+),([\d\.]+)\]/);
         if (scrollDownMatch) {
-            const normX = parseInt(scrollDownMatch[1], 10);
-            const normY = parseInt(scrollDownMatch[2], 10);
-            const amount = parseFloat(scrollDownMatch[3]);
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            exec(`MouseClicker.exe scrolldown ${pixelX} ${pixelY} ${amount}`);
+            if (!isGuideMode) {
+                const normX = parseInt(scrollDownMatch[1], 10);
+                const normY = parseInt(scrollDownMatch[2], 10);
+                const amount = parseFloat(scrollDownMatch[3]);
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                exec(`MouseClicker.exe scrolldown ${pixelX} ${pixelY} ${amount}`);
+            }
             aiResponseText = aiResponseText.replace(/\[SCROLL_DOWN:\d+,\d+,[\d\.]+\]/g, '').trim();
         }
 
         const typeMatch = aiResponseText.match(/\[TYPE:(\d+),(\d+):(.*?)\]/);
         if (typeMatch) {
-            const normX = parseInt(typeMatch[1], 10);
-            const normY = parseInt(typeMatch[2], 10);
-            const textToType = typeMatch[3];
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            const base64Text = Buffer.from(textToType, 'utf-8').toString('base64');
-            exec(`DrawClick.exe ${pixelX} ${pixelY}`);
-            exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => {
-                if (!error) exec(`KeyboardTyper.exe ${base64Text}`);
-            });
+            if (!isGuideMode) {
+                const normX = parseInt(typeMatch[1], 10);
+                const normY = parseInt(typeMatch[2], 10);
+                const textToType = typeMatch[3];
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                const base64Text = Buffer.from(textToType, 'utf-8').toString('base64');
+                exec(`DrawClick.exe ${pixelX} ${pixelY}`);
+                exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => {
+                    if (!error) exec(`KeyboardTyper.exe ${base64Text}`);
+                });
+            }
             aiResponseText = aiResponseText.replace(/\[TYPE:\d+,\d+:.*?\]/g, '').trim();
         }
 
         const typeEnterMatch = aiResponseText.match(/\[TYPE_ENTER:(\d+),(\d+):(.*?)\]/);
         if (typeEnterMatch) {
-            const normX = parseInt(typeEnterMatch[1], 10);
-            const normY = parseInt(typeEnterMatch[2], 10);
-            const textToType = typeEnterMatch[3];
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            const base64Text = Buffer.from(textToType, 'utf-8').toString('base64');
-            exec(`DrawClick.exe ${pixelX} ${pixelY}`);
-            exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => {
-                if (!error) exec(`KeyboardTyper.exe ${base64Text} enter`);
-            });
+            if (!isGuideMode) {
+                const normX = parseInt(typeEnterMatch[1], 10);
+                const normY = parseInt(typeEnterMatch[2], 10);
+                const textToType = typeEnterMatch[3];
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
+                const base64Text = Buffer.from(textToType, 'utf-8').toString('base64');
+                exec(`DrawClick.exe ${pixelX} ${pixelY}`);
+                exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => {
+                    if (!error) exec(`KeyboardTyper.exe ${base64Text} enter`);
+                });
+            }
             aiResponseText = aiResponseText.replace(/\[TYPE_ENTER:\d+,\d+:.*?\]/g, '').trim();
         }
 
         const pasteImageMatch = aiResponseText.match(/\[PASTE_IMAGE:(\d+),(\d+):(.*?)\]/);
         if (pasteImageMatch) {
-            const normX = parseInt(pasteImageMatch[1], 10);
-            const normY = parseInt(pasteImageMatch[2], 10);
-            const imageUrl = pasteImageMatch[3];
-            const pixelX = Math.round((normX / 1000) * loopImgWidth);
-            const pixelY = Math.round((normY / 1000) * loopImgHeight);
-            
-            mainWindow.webContents.send('status', 'Görsel indiriliyor ve yapıştırılıyor...');
-            
-            try {
-                const res = await fetch(imageUrl);
-                const arrayBuffer = await res.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
-                const tempImgPath = path.join(app.getPath('temp'), 'temp_paste.png');
-                fs.writeFileSync(tempImgPath, buffer);
+            if (!isGuideMode) {
+                const normX = parseInt(pasteImageMatch[1], 10);
+                const normY = parseInt(pasteImageMatch[2], 10);
+                const imageUrl = pasteImageMatch[3];
+                const pixelX = Math.round((normX / 1000) * loopImgWidth);
+                const pixelY = Math.round((normY / 1000) * loopImgHeight);
                 
-                exec(`DrawClick.exe ${pixelX} ${pixelY}`);
-                exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => {
-                    if (!error) exec(`PasteImage.exe "${tempImgPath}"`);
-                });
-            } catch(e) {
-                console.error("Failed to download or paste image:", e);
+                mainWindow.webContents.send('status', 'Görsel indiriliyor ve yapıştırılıyor...');
+                
+                try {
+                    const res = await fetch(imageUrl);
+                    const arrayBuffer = await res.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+                    const tempImgPath = path.join(app.getPath('temp'), 'temp_paste.png');
+                    fs.writeFileSync(tempImgPath, buffer);
+                    
+                    exec(`DrawClick.exe ${pixelX} ${pixelY}`);
+                    exec(`MouseClicker.exe click ${pixelX} ${pixelY}`, (error) => {
+                        if (!error) exec(`PasteImage.exe "${tempImgPath}"`);
+                    });
+                } catch(e) {
+                    console.error("Failed to download or paste image:", e);
+                }
             }
-            
             aiResponseText = aiResponseText.replace(/\[PASTE_IMAGE:\d+,\d+:.*?\]/g, '').trim();
         }
 
@@ -411,7 +439,7 @@ ipcMain.on('ask-question', async (event, userPrompt) => {
     }
 
     try {
-        await processAgentLoop(messages, false);
+        await processAgentLoop(messages, isGuideMode);
     } catch (error) {
         console.error('Error processing message:', error);
         mainWindow.webContents.send('error', 'Bir hata oluştu: ' + error.message);

@@ -8,6 +8,7 @@ function App() {
     const [status, setStatus] = useState('Bağlı');
     const [isProcessing, setIsProcessing] = useState(false);
     const [activeQuestion, setActiveQuestion] = useState(null);
+    const [isGuideMode, setIsGuideMode] = useState(false);
     const chatAreaRef = useRef(null);
     const recognitionRef = useRef(null);
 
@@ -91,7 +92,7 @@ function App() {
         setStatus('İşleniyor...');
 
         if (window.api) {
-            window.api.askQuestion(text);
+            window.api.askQuestion(text, isGuideMode);
         } else {
             setIsProcessing(false);
             setMessages(prev => [...prev, { role: 'system', text: 'Electron API bulunamadı (Tarayıcıda çalışıyorsanız normaldir).' }]);
@@ -156,7 +157,13 @@ function App() {
                     <div className={`pulse-ring ${isRecording ? 'recording' : ''} ${!window.api ? 'offline' : ''}`}></div>
                     <div className="logo">AIKO</div>
                 </div>
-                <div className="status" id="status-text">{status}</div>
+                <div className="header-controls">
+                    <label className="guide-mode-toggle" title="Adımlı Rehber Modu">
+                        <input type="checkbox" checked={isGuideMode} onChange={(e) => setIsGuideMode(e.target.checked)} />
+                        Rehber Modu
+                    </label>
+                    <div className="status" id="status-text">{status}</div>
+                </div>
             </div>
             
             <div className="chat-area" ref={chatAreaRef}>
@@ -239,9 +246,16 @@ function App() {
                         <span className="material-icons-round">stop</span>
                     </button>
                 ) : (
-                    <button className="icon-btn primary" onClick={() => handleSend(null)} title="Gönder ve Ekranı Analiz Et">
-                        <span className="material-icons-round">send</span>
-                    </button>
+                    <>
+                        {isGuideMode && (
+                            <button className="icon-btn info" onClick={() => handleSend("Sonraki adım nedir? Lütfen ekrana bakarak söyle.")} title="Sonraki Adım">
+                                <span className="material-icons-round">skip_next</span>
+                            </button>
+                        )}
+                        <button className="icon-btn primary" onClick={() => handleSend(null)} title="Gönder ve Ekranı Analiz Et">
+                            <span className="material-icons-round">send</span>
+                        </button>
+                    </>
                 )}
             </div>
         </div>
