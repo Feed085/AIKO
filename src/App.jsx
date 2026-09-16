@@ -1,16 +1,113 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
+const createNewSession = () => ({
+    id: 'session_' + Date.now(),
+    title: 'Yeni sohbet',
+    messages: [],
+    createdAt: Date.now()
+});
+
 function App() {
-    const [messages, setMessages] = useState([]);
+    // Sohbet Oturumları (Kullanıcının gerçek sohbetleri saklanır)
+    const [sessions, setSessions] = useState(() => {
+        try {
+            const saved = localStorage.getItem('aiko_chat_sessions');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {
+            console.error("LocalStorage okuma hatası:", e);
+        }
+        return [createNewSession()];
+    });
+
+    const [currentSessionId, setCurrentSessionId] = useState(() => {
+        try {
+            const last = localStorage.getItem('aiko_current_session_id');
+            if (last) return last;
+        } catch (e) {}
+        return sessions[0]?.id || 'session_' + Date.now();
+    });
+
+    // Aktif oturum ve mesajları
+    const activeSession = sessions.find(s => s.id === currentSessionId) || sessions[0] || createNewSession();
+    const messages = activeSession.messages || [];
+
     const [inputVal, setInputVal] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [status, setStatus] = useState('Hazır');
     const [isProcessing, setIsProcessing] = useState(false);
     const [activeQuestion, setActiveQuestion] = useState(null);
     const [isGuideMode, setIsGuideMode] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
     const chatAreaRef = useRef(null);
     const recognitionRef = useRef(null);
+    const inputRef = useRef(null);
+
+    // Oturumları kaydet
+    useEffect(() => {
+        try {
+            localStorage.setItem('aiko_chat_sessions', JSON.stringify(sessions));
+            localStorage.setItem('aiko_current_session_id', currentSessionId);
+        } catch (e) {
+            console.error("LocalStorage kaydetme hatası:", e);
+        }
+    }, [sessions, currentSessionId]);
+
+    // Mesaj ekleme
+    const updateActiveSessionMessages = (updater) => {
+        setSessions(prevSessions => {
+            return prevSessions.map(sess => {
+                if (sess.id === currentSessionId) {
+                    const newMessages = typeof updater === 'function' ? updater(sess.messages) : updater;
+                    let title = sess.title;
+                    if ((sess.title === 'Yeni sohbet' || !sess.title) && newMessages.length > 0) {
+                        const firstUserMsg = newMessages.find(m => m.role === 'user');
+                        if (firstUserMsg) {
+                            title = firstUserMsg.text.slice(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '');
+                        }
+                    }
+                    return { ...sess, messages: newMessages, title, updatedAt: Date.now() };
+                }
+                return sess;
+            });
+        });
+    };
+
+    const handleSelectSession = (id) => {
+        setCurrentSessionId(id);
+        setActiveQuestion(null);
+    };
+
+    const handleNewChat = () => {
+        const newSess = createNewSession();
+        setSessions(prev => [newSess, ...prev]);
+        setCurrentSessionId(newSess.id);
+        setActiveQuestion(null);
+        setInputVal('');
+        setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    const handleDeleteSession = (e, id) => {
+        e.stopPropagation();
+        setSessions(prev => {
+            const filtered = prev.filter(s => s.id !== id);
+            if (filtered.length === 0) {
+                const fresh = createNewSession();
+                setCurrentSessionId(fresh.id);
+                return [fresh];
+            }
+            if (currentSessionId === id) {
+                setCurrentSessionId(filtered[0].id);
+            }
+            return filtered;
+        });
+    };
 
     useEffect(() => {
         if (chatAreaRef.current) {
@@ -18,6 +115,7 @@ function App() {
         }
     }, [messages, isProcessing, activeQuestion]);
 
+    // Sesli Komut ve Electron Dinleyicileri
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -55,7 +153,7 @@ function App() {
             window.api.onAnswer((value) => {
                 setIsProcessing(false);
                 setStatus('Hazır');
-                setMessages(prev => [
+                updateActiveSessionMessages(prev => [
                     ...prev, 
                     { 
                         role: 'ai', 
@@ -69,7 +167,7 @@ function App() {
             window.api.onError((value) => {
                 setIsProcessing(false);
                 setStatus('Hata');
-                setMessages(prev => [
+                updateActiveSessionMessages(prev => [
                     ...prev, 
                     { 
                         role: 'system', 
@@ -92,14 +190,15 @@ function App() {
                 }
             });
         }
-    }, []);
+    }, [currentSessionId]);
 
     const handleSend = (textOverride = null) => {
         const text = textOverride !== null ? textOverride : inputVal.trim();
         if (!text) return;
 
         const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        setMessages(prev => [...prev, { role: 'user', text, time: currentTime }]);
+        
+        updateActiveSessionMessages(prev => [...prev, { role: 'user', text, time: currentTime }]);
         setInputVal('');
         setIsProcessing(true);
         setStatus('İşleniyor');
@@ -108,7 +207,7 @@ function App() {
             window.api.askQuestion(text, isGuideMode);
         } else {
             setIsProcessing(false);
-            setMessages(prev => [
+            updateActiveSessionMessages(prev => [
                 ...prev, 
                 { 
                     role: 'system', 
@@ -170,205 +269,344 @@ function App() {
         handleSend("Seçim: " + selectedValue);
     };
 
-    const getStatusIndicatorClass = () => {
-        if (!window.api) return 'status-dot offline';
-        if (isRecording) return 'status-dot recording';
-        if (isProcessing) return 'status-dot processing';
-        if (status === 'Hata') return 'status-dot error';
-        return 'status-dot online';
-    };
+    const filteredSessions = sessions.filter(s => 
+        !searchTerm || (s.title && s.title.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    // Ortadaki Chat Giriş Kutusu (Fotoğraftaki tasarıma sahip, bizde olan bileşenler)
+    const renderChatInputBox = () => (
+        <div className="cpt-input-bar">
+            {/* Orta: Metin Girişi */}
+            <input 
+                ref={inputRef}
+                type="text"
+                className="cpt-text-input"
+                placeholder={isRecording ? "Ses dinleniyor..." : "İstediğin bir şeyi sor"}
+                value={inputVal}
+                onChange={(e) => setInputVal(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isProcessing}
+                autoComplete="off"
+            />
+
+            {/* Sağ Aksiyonlar: Mikrofon & Mavi Dairesel Gönder Butonu */}
+            <div className="cpt-right-actions">
+                {/* Mikrofon (Sesli Giriş) */}
+                <button 
+                    type="button" 
+                    className={`cpt-icon-btn mic-btn ${isRecording ? 'recording' : ''}`}
+                    onClick={toggleMic}
+                    title="Sesli Komut"
+                >
+                    <span className="material-icons-round">mic</span>
+                </button>
+
+                {/* Mavi Daire Gönder / Durdur Butonu */}
+                {isProcessing ? (
+                    <button 
+                        type="button" 
+                        className="cpt-primary-circle-btn stop-mode"
+                        onClick={handleStop}
+                        title="İşlemi Durdur"
+                    >
+                        <span className="material-icons-round">stop</span>
+                    </button>
+                ) : (
+                    <button 
+                        type="button" 
+                        className={`cpt-primary-circle-btn ${!inputVal.trim() && !isRecording ? 'disabled' : ''}`}
+                        onClick={() => handleSend(null)}
+                        disabled={!inputVal.trim() && !isRecording}
+                        title="Gönder"
+                    >
+                        <span className="material-icons-round">arrow_upward</span>
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
+    // AIKO'nun gerçek kabiliyetlerine uygun hızlı başlangıç seçenekleri
+    const renderQuickActions = () => (
+        <div className="cpt-quick-actions">
+            <button 
+                className="quick-action-btn"
+                onClick={() => handleSend("Ekranda ne görüyorsun? Detaylı açıkla.")}
+            >
+                <span className="material-icons-round">visibility</span>
+                <span>Ekrandaki içeriği analiz et</span>
+            </button>
+
+            <button 
+                className="quick-action-btn"
+                onClick={() => handleSend("Şu an açık olan penceredeki işlemi yapmam için bana adım adım rehberlik et.")}
+            >
+                <span className="material-icons-round">explore</span>
+                <span>Adım adım işlem rehberliği al</span>
+            </button>
+        </div>
+    );
 
     return (
-        <div className="container">
-            {/* Header / Titlebar */}
-            <header className="header">
-                <div className="brand-block">
-                    <div className="brand-logo-frame">
-                        <img src="/app-icon.png" alt="AIKO" className="brand-logo-img" />
-                    </div>
-                    <div className="brand-identity">
-                        <div className="brand-title-row">
-                            <span className="brand-name">Aiko</span>
-                            <span className="brand-badge">Asistan</span>
+        <div className="app-layout">
+            {/* Sol Kenar Çubuğu (Collapsible Sidebar) */}
+            <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+                <div className="sidebar-inner">
+                    {/* Üst Kısım: AIKO Markası & Kenar Çubuğunu Gizleme */}
+                    <div className="sidebar-header">
+                        <div className="sidebar-brand">
+                            <span className="brand-text">AIKO</span>
                         </div>
-                    </div>
-                </div>
-
-                <div className="header-controls">
-                    <label className={`guide-toggle ${isGuideMode ? 'active' : ''}`} title="Adımlı Rehber Modu">
-                        <input 
-                            type="checkbox" 
-                            checked={isGuideMode} 
-                            onChange={(e) => setIsGuideMode(e.target.checked)} 
-                        />
-                        <span className="guide-indicator"></span>
-                        <span className="guide-label">Rehber Modu</span>
-                    </label>
-
-                    <div className="status-pill">
-                        <span className={getStatusIndicatorClass()}></span>
-                        <span className="status-text">{status}</span>
-                    </div>
-                </div>
-            </header>
-            
-            {/* Main Chat Stream */}
-            <main className="chat-area" ref={chatAreaRef}>
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`message-wrapper ${msg.role}`}>
-                        {msg.role === 'system' ? (
-                            <div className="system-pill">
-                                <span className="system-tag">Sistem</span>
-                                <span className="system-content">{msg.text}</span>
-                                {msg.time && <span className="message-time">{msg.time}</span>}
-                            </div>
-                        ) : (
-                            <div className={`message-card ${msg.role}`}>
-                                <div className="card-header">
-                                    <span className="author-name">
-                                        {msg.role === 'ai' ? 'Aiko' : 'Kullanıcı'}
-                                    </span>
-                                    {msg.time && <span className="message-time">{msg.time}</span>}
-                                </div>
-                                <div className="card-body">
-                                    {msg.isHtml ? (
-                                        <div dangerouslySetInnerHTML={formatMessage(msg.text)} />
-                                    ) : (
-                                        <div>{msg.text}</div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ))}
-                
-                {/* Processing State */}
-                {isProcessing && (
-                    <div className="message-wrapper ai">
-                        <div className="message-card ai processing-card">
-                            <div className="card-header">
-                                <span className="author-name">AIKO</span>
-                                <span className="processing-tag">Analiz ediliyor</span>
-                            </div>
-                            <div className="processing-indicator">
-                                <div className="scanner-line"></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Interactive Question Card */}
-                {activeQuestion && (
-                    <div className="message-wrapper ai">
-                        <form className="message-card ai question-card" onSubmit={submitQuestion}>
-                            <div className="card-header">
-                                <span className="author-name">AIKO</span>
-                                <span className="badge-action">Kullanıcı Kararı Gerekli</span>
-                            </div>
-                            <div className="question-prompt">{activeQuestion.question}</div>
-                            <div className="choices-grid">
-                                {activeQuestion.options.map((opt, i) => (
-                                    <label key={i} className="choice-item">
-                                        <input type="radio" name="q_choice" value={opt} />
-                                        <span className="radio-mark"></span>
-                                        <span className="choice-text">{opt}</span>
-                                    </label>
-                                ))}
-                                <label className="choice-item other-choice">
-                                    <input 
-                                        type="radio" 
-                                        name="q_choice" 
-                                        value="other" 
-                                        onChange={(e) => {
-                                            const customInput = document.getElementById('q_custom_input');
-                                            if (customInput) {
-                                                customInput.disabled = !e.target.checked;
-                                                if (e.target.checked) customInput.focus();
-                                            }
-                                        }}
-                                    />
-                                    <span className="radio-mark"></span>
-                                    <span className="choice-text">Diğer (Belirtin)</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    name="q_custom"
-                                    id="q_custom_input" 
-                                    className="custom-choice-input" 
-                                    placeholder="Belirtmek istediğiniz seçeneği yazın..." 
-                                    disabled 
-                                    autoComplete="off" 
-                                />
-                            </div>
-                            <button type="submit" className="confirm-btn">
-                                Seçimi Onayla
-                            </button>
-                        </form>
-                    </div>
-                )}
-            </main>
-
-            {/* Precision Command Dock */}
-            <footer className="input-dock">
-                <div className="dock-container">
-                    {!isProcessing && (
-                        <button 
-                            type="button"
-                            className={`dock-btn mic-btn ${isRecording ? 'recording' : ''}`} 
-                            onClick={toggleMic}
-                            title="Sesli Komut Girişi"
-                        >
-                            <span className="material-icons-round">mic</span>
-                        </button>
-                    )}
-                    
-                    <input 
-                        type="text" 
-                        value={inputVal}
-                        onChange={(e) => setInputVal(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={isRecording ? "Ses dinleniyor..." : "Komut girin veya ekran hakkında soru sorun..."} 
-                        disabled={isProcessing}
-                        autoComplete="off"
-                        className="command-input"
-                    />
-                    
-                    <div className="dock-actions">
-                        {isProcessing ? (
+                        <div className="sidebar-top-icons">
                             <button 
-                                type="button" 
-                                className="dock-btn stop-btn" 
-                                onClick={handleStop} 
-                                title="İşlemi Durdur"
+                                className="icon-btn" 
+                                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                title="Sohbetlerde Ara"
                             >
-                                <span className="material-icons-round">stop</span>
+                                <span className="material-icons-round">search</span>
                             </button>
-                        ) : (
-                            <>
-                                {isGuideMode && (
-                                    <button 
-                                        type="button" 
-                                        className="dock-btn next-btn" 
-                                        onClick={() => handleSend("Sonraki adım nedir? Lütfen ekrana bakarak söyle.")} 
-                                        title="Sonraki Adımı İste"
-                                    >
-                                        <span className="material-icons-round">skip_next</span>
-                                    </button>
-                                )}
-                                <button 
-                                    type="button" 
-                                    className="dock-btn submit-btn" 
-                                    onClick={() => handleSend(null)} 
-                                    title="Komutu Yürüt"
-                                    disabled={!inputVal.trim()}
-                                >
-                                    <span className="material-icons-round">arrow_upward</span>
+                            <button 
+                                className="icon-btn" 
+                                onClick={() => setIsSidebarOpen(false)}
+                                title="Kenar Çubuğunu Gizle"
+                            >
+                                <span className="material-icons-round">view_sidebar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Arama Alanı */}
+                    {isSearchOpen && (
+                        <div className="sidebar-search-bar">
+                            <input 
+                                type="text"
+                                placeholder="Sohbet ara..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                autoFocus
+                            />
+                            {searchTerm && (
+                                <button className="clear-search" onClick={() => setSearchTerm('')}>
+                                    <span className="material-icons-round">close</span>
                                 </button>
-                            </>
-                        )}
+                            )}
+                        </div>
+                    )}
+
+                    {/* Yeni Sohbet Butonu */}
+                    <button className="new-chat-btn" onClick={handleNewChat}>
+                        <span className="material-icons-round">edit_note</span>
+                        <span>Yeni sohbet</span>
+                    </button>
+
+                    {/* Rehber Modu (Sol Menüde, aktif/pasif çalışan anahtar) */}
+                    <div className="sidebar-guide-toggle-box">
+                        <label className="guide-switch-label">
+                            <div className="guide-switch-info">
+                                <span className="material-icons-round guide-icon">explore</span>
+                                <span>Rehber Modu</span>
+                            </div>
+                            <input 
+                                type="checkbox" 
+                                checked={isGuideMode} 
+                                onChange={(e) => setIsGuideMode(e.target.checked)} 
+                            />
+                            <span className="switch-slider"></span>
+                        </label>
+                    </div>
+
+                    {/* Sohbet Geçmişi: Yakın Zamandakiler */}
+                    <div className="sidebar-history">
+                        <div className="history-section-title">Yakın zamandakiler</div>
+                        <div className="history-list">
+                            {filteredSessions.map((sess) => (
+                                <div 
+                                    key={sess.id} 
+                                    className={`history-item ${sess.id === currentSessionId ? 'active' : ''}`}
+                                    onClick={() => handleSelectSession(sess.id)}
+                                >
+                                    <span className="history-item-title">{sess.title || 'Yeni sohbet'}</span>
+                                    <button 
+                                        className="history-item-del"
+                                        onClick={(e) => handleDeleteSession(e, sess.id)}
+                                        title="Sohbeti Sil"
+                                    >
+                                        <span className="material-icons-round">delete_outline</span>
+                                    </button>
+                                </div>
+                            ))}
+                            {filteredSessions.length === 0 && (
+                                <div className="history-empty">Henüz sohbet geçmişi yok</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Alt Kısım: Sade Kullanıcı Profili (Sahte teklif/satış butonları kaldırıldı) */}
+                    <div className="sidebar-footer">
+                        <div className="user-profile">
+                            <div className="user-avatar">EB</div>
+                            <div className="user-details">
+                                <div className="user-name">Elcan Bakhsaliyev</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </footer>
+            </aside>
+
+            {/* Ana İçerik Alanı */}
+            <div className="main-content">
+                {/* Üst Minimalist Bar */}
+                <header className="top-bar">
+                    <div className="top-bar-left">
+                        {!isSidebarOpen && (
+                            <button 
+                                className="icon-btn toggle-sidebar-btn" 
+                                onClick={() => setIsSidebarOpen(true)}
+                                title="Kenar Çubuğunu Aç"
+                            >
+                                <span className="material-icons-round">view_sidebar</span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Ortada Sade Başlık / Sekme */}
+                    <div className="top-bar-center">
+                        <div className="mode-pill-selector">
+                            <span className="pill-tab active">Sohbet</span>
+                        </div>
+                    </div>
+
+                    {/* Sağda sadece yeniden başlat / yenile ikonu */}
+                    <div className="top-bar-right">
+                        <button className="icon-btn refresh-btn" onClick={() => window.location.reload()} title="Yenile">
+                            <span className="material-icons-round">refresh</span>
+                        </button>
+                    </div>
+                </header>
+
+                {/* Mesaj Yokken: Sayfanın Ortasında Sade ChatGPT Tarzı Chat Kutusu */}
+                {messages.length === 0 ? (
+                    <div className="hero-centered-content">
+                        <div className="hero-box">
+                            {renderChatInputBox()}
+                            {renderQuickActions()}
+                        </div>
+                    </div>
+                ) : (
+                    /* Mesaj Varken: Mesaj Akışı ve Alttaki Chat Kutusu */
+                    <>
+                        <main className="chat-viewport" ref={chatAreaRef}>
+                            <div className="chat-container">
+                                {messages.map((msg, idx) => (
+                                    <div key={idx} className={`chat-message ${msg.role}`}>
+                                        <div className="message-bubble-wrapper">
+                                            {msg.role === 'ai' && (
+                                                <div className="message-avatar aiko-avatar">
+                                                    <span className="material-icons-round">smart_toy</span>
+                                                </div>
+                                            )}
+                                            <div className="message-content">
+                                                {msg.role === 'system' ? (
+                                                    <div className="system-notice">
+                                                        <span className="material-icons-round">info</span>
+                                                        <span>{msg.text}</span>
+                                                    </div>
+                                                ) : msg.isHtml ? (
+                                                    <div dangerouslySetInnerHTML={formatMessage(msg.text)} />
+                                                ) : (
+                                                    <div>{msg.text}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* İşlem Sürüyor */}
+                                {isProcessing && (
+                                    <div className="chat-message ai processing">
+                                        <div className="message-bubble-wrapper">
+                                            <div className="message-avatar aiko-avatar">
+                                                <span className="material-icons-round">smart_toy</span>
+                                            </div>
+                                            <div className="message-content processing-box">
+                                                <div className="thinking-dots">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
+                                                <span className="thinking-text">Yanıt üretiliyor...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Soru / Seçim Kartı */}
+                                {activeQuestion && (
+                                    <div className="chat-message ai">
+                                        <div className="message-bubble-wrapper">
+                                            <div className="message-avatar aiko-avatar">
+                                                <span className="material-icons-round">help_outline</span>
+                                            </div>
+                                            <div className="message-content">
+                                                <form className="question-interactive-card" onSubmit={submitQuestion}>
+                                                    <div className="q-card-header">
+                                                        <span className="q-title">Kullanıcı Kararı Gerekli</span>
+                                                    </div>
+                                                    <div className="q-body-text">{activeQuestion.question}</div>
+                                                    <div className="q-options-list">
+                                                        {activeQuestion.options.map((opt, i) => (
+                                                            <label key={i} className="q-option-item">
+                                                                <input type="radio" name="q_choice" value={opt} />
+                                                                <span className="q-custom-radio"></span>
+                                                                <span className="q-option-text">{opt}</span>
+                                                            </label>
+                                                        ))}
+                                                        <label className="q-option-item other-opt">
+                                                            <input 
+                                                                type="radio" 
+                                                                name="q_choice" 
+                                                                value="other" 
+                                                                onChange={(e) => {
+                                                                    const customInput = document.getElementById('q_custom_input');
+                                                                    if (customInput) {
+                                                                        customInput.disabled = !e.target.checked;
+                                                                        if (e.target.checked) customInput.focus();
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <span className="q-custom-radio"></span>
+                                                            <span className="q-option-text">Diğer (Belirtin)</span>
+                                                        </label>
+                                                        <input 
+                                                            type="text" 
+                                                            name="q_custom"
+                                                            id="q_custom_input" 
+                                                            className="q-other-field" 
+                                                            placeholder="Belirtmek istediğiniz seçeneği yazın..." 
+                                                            disabled 
+                                                            autoComplete="off" 
+                                                        />
+                                                    </div>
+                                                    <button type="submit" className="q-submit-btn">
+                                                        Seçimi Onayla
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </main>
+
+                        {/* Alttaki Giriş Alanı */}
+                        <div className="input-outer-wrapper">
+                            <div className="input-inner-container">
+                                {renderChatInputBox()}
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }
