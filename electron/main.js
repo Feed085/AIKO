@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
@@ -16,15 +16,24 @@ const __dirname = path.dirname(__filename);
 let mainWindow;
 
 function createWindow() {
+    const iconPath = path.join(__dirname, '../public/app-icon.ico');
+    const appIcon = nativeImage.createFromPath(iconPath);
+
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 800,
+        backgroundColor: '#0c0d10',
+        icon: appIcon,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
         }
     });
+
+    if (process.platform === 'win32') {
+        mainWindow.setIcon(appIcon);
+    }
 
     if (process.env.NODE_ENV === 'development') {
         mainWindow.loadURL('http://localhost:5173');
@@ -35,6 +44,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    if (process.platform === 'win32') {
+        app.setAppUserModelId('com.aiko.app');
+    }
+
     createWindow();
 
     app.on('activate', () => {
