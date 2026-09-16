@@ -352,9 +352,21 @@ function App() {
             {/* Sol Kenar Çubuğu (Collapsible Sidebar) */}
             <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-inner">
-                    {/* Üst Kısım: AIKO Markası & Kenar Çubuğunu Gizleme */}
+                    {/* Üst Kısım: AIKO Markası & Kenar Çubuğunu Kapatma Butonu */}
                     <div className="sidebar-header">
                         <div className="sidebar-brand">
+                            <button 
+                                className="icon-btn hamburger-btn" 
+                                onClick={() => setIsSidebarOpen(false)}
+                                title="Kenar Çubuğunu Kapat"
+                                aria-label="Kenar Çubuğunu Kapat"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
                             <span className="brand-text">AIKO</span>
                         </div>
                         <div className="sidebar-top-icons">
@@ -364,13 +376,6 @@ function App() {
                                 title="Sohbetlerde Ara"
                             >
                                 <span className="material-icons-round">search</span>
-                            </button>
-                            <button 
-                                className="icon-btn" 
-                                onClick={() => setIsSidebarOpen(false)}
-                                title="Kenar Çubuğunu Gizle"
-                            >
-                                <span className="material-icons-round">view_sidebar</span>
                             </button>
                         </div>
                     </div>
@@ -440,47 +445,33 @@ function App() {
                             )}
                         </div>
                     </div>
-
-                    {/* Alt Kısım: Sade Kullanıcı Profili (Sahte teklif/satış butonları kaldırıldı) */}
-                    <div className="sidebar-footer">
-                        <div className="user-profile">
-                            <div className="user-avatar">EB</div>
-                            <div className="user-details">
-                                <div className="user-name">Elcan Bakhsaliyev</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </aside>
 
             {/* Ana İçerik Alanı */}
             <div className="main-content">
-                {/* Üst Minimalist Bar */}
-                <header className="top-bar">
-                    <div className="top-bar-left">
-                        {!isSidebarOpen && (
-                            <button 
-                                className="icon-btn toggle-sidebar-btn" 
-                                onClick={() => setIsSidebarOpen(true)}
-                                title="Kenar Çubuğunu Aç"
-                            >
-                                <span className="material-icons-round">view_sidebar</span>
-                            </button>
-                        )}
-                    </div>
+                {/* Sol Menü Kapalıyken Sol Üstte Sabit Duran 3 Çizgili Menü Butonu */}
+                {!isSidebarOpen && (
+                    <button 
+                        className="icon-btn fixed-sidebar-toggle-btn" 
+                        onClick={() => setIsSidebarOpen(true)}
+                        title="Kenar Çubuğunu Aç"
+                        aria-label="Kenar Çubuğunu Aç"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                )}
 
-                    {/* Ortada Sade Başlık / Sekme */}
+                {/* Üst Minimalist Bar (Tam Ortalanmış) */}
+                <header className="top-bar">
                     <div className="top-bar-center">
                         <div className="mode-pill-selector">
                             <span className="pill-tab active">Sohbet</span>
                         </div>
-                    </div>
-
-                    {/* Sağda sadece yeniden başlat / yenile ikonu */}
-                    <div className="top-bar-right">
-                        <button className="icon-btn refresh-btn" onClick={() => window.location.reload()} title="Yenile">
-                            <span className="material-icons-round">refresh</span>
-                        </button>
                     </div>
                 </header>
 

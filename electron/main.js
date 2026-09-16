@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
@@ -19,10 +19,13 @@ function createWindow() {
     const iconPath = path.join(__dirname, '../public/app-icon.ico');
     const appIcon = nativeImage.createFromPath(iconPath);
 
+    Menu.setApplicationMenu(null);
+
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 800,
         backgroundColor: '#ffffff',
+        autoHideMenuBar: true,
         icon: appIcon,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),

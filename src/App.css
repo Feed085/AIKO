@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AIKO - Modern, Temiz & Gerçek İşlevli Tasarım Sistemi
+   AIKO - Tam Duyarlı & Kusursuz Ortalanmış Arayüz Tasarımı
    ========================================================================== */
 
 :root {
@@ -18,12 +18,12 @@
     
     --aiko-blue: #007aff;
     --aiko-blue-hover: #0062cc;
-    --aiko-green: #10a37f;
     --aiko-danger: #ef4444;
 
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --sidebar-width: 260px;
     --top-bar-height: 52px;
+    --chat-max-width: 768px;
 }
 
 * {
@@ -34,7 +34,7 @@
     -webkit-font-smoothing: antialiased;
 }
 
-body {
+html, body {
     background-color: var(--bg-main);
     color: var(--text-main);
     overflow: hidden;
@@ -47,7 +47,10 @@ body {
     height: 100%;
 }
 
-/* Ana Düzen */
+/* ==========================================================================
+   Ana Düzen (Layout)
+   ========================================================================== */
+
 .app-layout {
     display: flex;
     width: 100vw;
@@ -69,28 +72,36 @@ body {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    transition: width 0.22s cubic-bezier(0.2, 0, 0, 1), margin-left 0.22s cubic-bezier(0.2, 0, 0, 1);
+    flex-grow: 0;
+    transition: width 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.18s ease;
     position: relative;
-    z-index: 30;
+    z-index: 40;
+    overflow: hidden;
 }
 
 .sidebar.closed {
-    margin-left: calc(-1 * var(--sidebar-width));
-    width: 0;
-    border-right: none;
-    overflow: hidden;
-    pointer-events: none;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    border-right: none !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden;
 }
 
 .sidebar-inner {
     width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: 12px 14px;
+    box-sizing: border-box;
 }
 
-/* Sidebar Başlık */
+/* Sidebar Başlık & Hamburger Kapat Butonu */
 .sidebar-header {
     display: flex;
     align-items: center;
@@ -103,7 +114,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-left: 4px;
 }
 
 .brand-text {
@@ -111,6 +121,7 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--text-main);
+    user-select: none;
 }
 
 .sidebar-top-icons {
@@ -120,17 +131,17 @@ body {
 }
 
 .icon-btn {
-    background: none;
+    background: transparent;
     border: none;
     outline: none;
     cursor: pointer;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     transition: background-color 0.15s, color 0.15s;
 }
 
@@ -288,7 +299,7 @@ body {
 }
 
 .sidebar-history::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
 }
 
 .sidebar-history::-webkit-scrollbar-thumb {
@@ -376,84 +387,76 @@ body {
     text-align: center;
 }
 
-/* Sidebar Alt Profil */
-.sidebar-footer {
-    padding-top: 10px;
-    border-top: 1px solid var(--border-divider);
-}
-
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 4px;
-    border-radius: 8px;
-}
-
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    background-color: var(--aiko-green);
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 12px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.user-details {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.user-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-main);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 /* ==========================================================================
-   Ana İçerik Alanı
+   Ana İçerik Alanı (Main Content)
    ========================================================================== */
 
 .main-content {
-    flex: 1;
+    flex: 1 1 0%;
     display: flex;
     flex-direction: column;
     height: 100%;
+    width: 100%;
     background: var(--bg-main);
     position: relative;
     min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
-/* Üst Minimalist Bar */
+/* Sol Menü Kapalıyken Sol Üstte Duran 3 Çizgili Hamburger Butonu */
+.fixed-sidebar-toggle-btn {
+    position: absolute;
+    left: 14px;
+    top: 8px;
+    z-index: 100;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+    outline: none;
+}
+
+.fixed-sidebar-toggle-btn:hover {
+    background-color: var(--bg-sidebar-hover);
+    border-color: rgba(0, 0, 0, 0.18);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.fixed-sidebar-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.fixed-sidebar-toggle-btn svg {
+    display: block;
+    stroke: var(--text-main);
+}
+
+.hamburger-btn svg {
+    display: block;
+    stroke: var(--text-main);
+}
+
+/* Üst Minimalist Bar (Tam Ortalanmış) */
 .top-bar {
     height: var(--top-bar-height);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 0 16px;
-    border-bottom: 1px solid transparent;
     user-select: none;
     position: relative;
-    z-index: 10;
-}
-
-.top-bar-left {
-    display: flex;
-    align-items: center;
-    min-width: 40px;
-}
-
-.toggle-sidebar-btn {
-    color: var(--text-secondary);
+    z-index: 20;
+    width: 100%;
+    flex-shrink: 0;
 }
 
 .top-bar-center {
@@ -474,7 +477,7 @@ body {
     background: transparent;
     border: none;
     outline: none;
-    padding: 5px 18px;
+    padding: 5px 20px;
     border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
@@ -489,19 +492,9 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.top-bar-right {
-    display: flex;
-    align-items: center;
-    min-width: 40px;
-    justify-content: flex-end;
-}
-
-.refresh-btn {
-    color: var(--text-secondary);
-}
-
 /* ==========================================================================
    ORTALANMIŞ HERO GÖRÜNÜMÜ (MESAJ YOKKEN)
+   Sidebar açıkken de kapalıyken de pencerenin tam ortasında durur
    ========================================================================== */
 
 .hero-centered-content {
@@ -510,16 +503,24 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 0 24px 60px 24px;
+    width: 100%;
+    height: 100%;
+    padding: 24px 20px 60px 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .hero-box {
     width: 100%;
-    max-width: 760px;
+    max-width: var(--chat-max-width);
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 20px;
     align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 /* ==========================================================================
@@ -534,6 +535,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    min-height: 0;
 }
 
 .chat-viewport::-webkit-scrollbar {
@@ -547,10 +550,12 @@ body {
 
 .chat-container {
     width: 100%;
-    max-width: 760px;
+    max-width: var(--chat-max-width);
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 20px;
+    box-sizing: border-box;
 }
 
 /* Mesajlar */
@@ -602,6 +607,7 @@ body {
     font-size: 15px;
     line-height: 1.6;
     color: var(--text-main);
+    word-break: break-word;
 }
 
 .chat-message.user .message-content {
@@ -775,7 +781,7 @@ body {
 }
 
 /* ==========================================================================
-   CHAT GİRİŞ KUTUSU (INPUT BAR)
+   CHAT GİRİŞ KUTUSU (INPUT DOCK & BAR)
    ========================================================================== */
 
 .input-outer-wrapper {
@@ -783,21 +789,26 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: 0 20px 24px 20px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 40%);
     position: relative;
     z-index: 20;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .input-inner-container {
     width: 100%;
-    max-width: 760px;
+    max-width: var(--chat-max-width);
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
 }
 
-/* Giriş Çubuğu (Yuvarlak Form, Sade ve İşlevsel) */
+/* Giriş Çubuğu (Yuvarlak Hap Form, Kusursuz Esneklik) */
 .cpt-input-bar {
     width: 100%;
     background-color: var(--bg-input);
@@ -809,6 +820,7 @@ body {
     gap: 12px;
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
     transition: box-shadow 0.2s, background-color 0.2s, border-color 0.2s;
+    box-sizing: border-box;
 }
 
 .cpt-input-bar:focus-within {
@@ -826,6 +838,7 @@ body {
     font-size: 15px;
     color: var(--text-main);
     padding: 6px 0;
+    min-width: 0;
 }
 
 .cpt-text-input::placeholder {
@@ -919,7 +932,8 @@ body {
     align-items: flex-start;
     gap: 8px;
     width: 100%;
-    padding: 0 8px;
+    padding: 0 10px;
+    box-sizing: border-box;
 }
 
 .quick-action-btn {
@@ -936,6 +950,7 @@ body {
     border-radius: 8px;
     transition: background-color 0.15s, color 0.15s;
     width: auto;
+    text-align: left;
 }
 
 .quick-action-btn:hover {
